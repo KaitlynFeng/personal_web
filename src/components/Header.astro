@@ -1,0 +1,27 @@
+---
+import { SITE_TITLE } from '../consts';
+import HeaderLink from './HeaderLink.astro';
+import ThemeToggle from './ThemeToggle.tsx';
+---
+
+<header class="border-b border-neutral-800 light:border-neutral-200">
+	<nav class="max-w-3xl mx-auto px-6 h-14 flex items-center justify-between">
+		<!-- Logo: terminal-style -->
+		<a href="/" class="flex items-center gap-1.5 text-sm font-bold no-underline hover:no-underline text-green-400 hover:text-green-300 light:text-green-700 light:hover:text-green-600">
+			<span class="text-neutral-500">~$</span>
+			<span>hayley</span>
+			<span class="cursor-blink text-green-400 light:text-green-600">_</span>
+		</a>
+
+		<!-- Nav links -->
+		<div class="flex items-center gap-1">
+			<HeaderLink href="/">/home</HeaderLink>
+			<HeaderLink href="/blog">/blog</HeaderLink>
+			<HeaderLink href="/projects">/projects</HeaderLink>
+			<HeaderLink href="/about">/about</HeaderLink>
+			<div class="ml-3">
+				<ThemeToggle client:load />
+			</div>
+		</div>
+	</nav>
+</header>

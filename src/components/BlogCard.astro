@@ -1,0 +1,38 @@
+---
+import FormattedDate from './FormattedDate.astro';
+
+interface Props {
+	title: string;
+	description: string;
+	pubDate: Date;
+	slug: string;
+	tags?: string[];
+}
+
+const { title, description, pubDate, slug, tags } = Astro.props;
+---
+
+<a href={`/blog/${slug}/`} class="group block no-underline hover:no-underline">
+	<article class="py-4 border-b border-dashed border-neutral-800 light:border-neutral-200 hover:bg-neutral-900/50 light:hover:bg-neutral-100/50 -mx-3 px-3 rounded transition-colors">
+		<div class="flex items-baseline justify-between gap-4 mb-1">
+			<h3 class="text-sm font-semibold text-neutral-200 light:text-neutral-800 group-hover:text-green-400 light:group-hover:text-green-600 transition-colors truncate">
+				{title}
+			</h3>
+			<span class="text-xs text-neutral-600 light:text-neutral-400 shrink-0 tabular-nums">
+				<FormattedDate date={pubDate} />
+			</span>
+		</div>
+		<p class="text-xs text-neutral-500 light:text-neutral-500 mb-2 line-clamp-1">
+			{description}
+		</p>
+		{tags && tags.length > 0 && (
+			<div class="flex flex-wrap gap-1.5">
+				{tags.map((tag: string) => (
+					<span class="text-[10px] px-1.5 py-0.5 rounded border border-neutral-800 text-neutral-500 light:border-neutral-300 light:text-neutral-500">
+						{tag}
+					</span>
+				))}
+			</div>
+		)}
+	</article>
+</a>

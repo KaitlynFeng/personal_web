@@ -1,0 +1,45 @@
+---
+import { getCollection } from 'astro:content';
+import BaseHead from '../../components/BaseHead.astro';
+import BlogCard from '../../components/BlogCard.astro';
+import Footer from '../../components/Footer.astro';
+import Header from '../../components/Header.astro';
+import { SITE_DESCRIPTION, SITE_TITLE } from '../../consts';
+
+const posts = (await getCollection('blog')).sort(
+	(a, b) => b.data.pubDate.valueOf() - a.data.pubDate.valueOf(),
+);
+---
+
+<!doctype html>
+<html lang="zh-CN">
+	<head>
+		<BaseHead title={`Blog - ${SITE_TITLE}`} description={SITE_DESCRIPTION} />
+	</head>
+	<body>
+		<Header />
+		<main class="max-w-3xl mx-auto px-6 py-16">
+			<div class="mb-8">
+				<div class="text-xs text-neutral-600 light:text-neutral-400 mb-3">
+					<span class="text-green-400 light:text-green-600">hayley@dev</span>:<span class="text-cyan-400 light:text-cyan-600">~/blog</span>$ ls -la --sort=date
+				</div>
+				<h1 class="text-xl font-bold text-neutral-100 light:text-neutral-900 mb-1">All Posts</h1>
+				<p class="text-xs text-neutral-500">
+					{posts.length} entries. Web dev, AI, systems, and things I learned the hard way.
+				</p>
+			</div>
+			<div>
+				{posts.map((post) => (
+					<BlogCard
+						title={post.data.title}
+						description={post.data.description}
+						pubDate={post.data.pubDate}
+						slug={post.id}
+						tags={post.data.tags}
+					/>
+				))}
+			</div>
+		</main>
+		<Footer />
+	</body>
+</html>

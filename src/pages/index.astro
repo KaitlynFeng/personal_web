@@ -1,0 +1,72 @@
+---
+import { getCollection } from 'astro:content';
+import BaseHead from '../components/BaseHead.astro';
+import BlogCard from '../components/BlogCard.astro';
+import Footer from '../components/Footer.astro';
+import Header from '../components/Header.astro';
+import { SITE_DESCRIPTION, SITE_TITLE } from '../consts';
+
+const posts = (await getCollection('blog'))
+	.sort((a, b) => b.data.pubDate.valueOf() - a.data.pubDate.valueOf())
+	.slice(0, 10);
+---
+
+<!doctype html>
+<html lang="zh-CN">
+	<head>
+		<BaseHead title={SITE_TITLE} description={SITE_DESCRIPTION} />
+	</head>
+	<body>
+		<Header />
+		<main class="max-w-3xl mx-auto px-6 py-16">
+			<!-- Hero -->
+			<section class="mb-16">
+				<div class="text-xs text-neutral-600 light:text-neutral-400 mb-4 font-mono">
+					<span class="text-green-400 light:text-green-600">hayley@dev</span>:<span class="text-cyan-400 light:text-cyan-600">~</span>$ cat intro.md
+				</div>
+				<h1 class="text-2xl md:text-3xl font-bold mb-4 leading-tight">
+					<span class="text-green-400 light:text-green-600">Hayley Feng</span>
+				</h1>
+				<p class="text-sm text-neutral-400 light:text-neutral-600 leading-relaxed max-w-xl mb-6">
+					Full-stack developer. Building with
+					<span class="text-cyan-400 light:text-cyan-600">FastAPI</span> +
+					<span class="text-cyan-400 light:text-cyan-600">React</span>.
+					Exploring <span class="text-yellow-400 light:text-yellow-600">AI</span>.
+					Writing things down so I don't forget them.
+				</p>
+				<div class="flex gap-3 text-xs">
+					<a href="/blog" class="px-3 py-1.5 border border-green-400/50 text-green-400 rounded hover:bg-green-400/10 transition-colors no-underline hover:no-underline light:border-green-600/50 light:text-green-700 light:hover:bg-green-600/10">
+						cd ~/blog
+					</a>
+					<a href="/projects" class="px-3 py-1.5 border border-neutral-700 text-neutral-400 rounded hover:border-neutral-500 hover:text-neutral-300 transition-colors no-underline hover:no-underline light:border-neutral-300 light:text-neutral-500 light:hover:border-neutral-400 light:hover:text-neutral-700">
+						ls ~/projects
+					</a>
+				</div>
+			</section>
+
+			<!-- Recent Posts -->
+			<section>
+				<div class="flex items-center justify-between mb-4">
+					<h2 class="text-xs text-neutral-500 light:text-neutral-400 uppercase tracking-wider">
+						<span class="text-green-400 light:text-green-600">$</span> recent posts
+					</h2>
+					<a href="/blog" class="text-xs text-neutral-500 hover:text-green-400 light:hover:text-green-600 transition-colors">
+						view all &rarr;
+					</a>
+				</div>
+				<div>
+					{posts.map((post) => (
+						<BlogCard
+							title={post.data.title}
+							description={post.data.description}
+							pubDate={post.data.pubDate}
+							slug={post.id}
+							tags={post.data.tags}
+						/>
+					))}
+				</div>
+			</section>
+		</main>
+		<Footer />
+	</body>
+</html>

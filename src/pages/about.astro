@@ -1,0 +1,51 @@
+---
+import BaseHead from '../components/BaseHead.astro';
+import Footer from '../components/Footer.astro';
+import Header from '../components/Header.astro';
+import { SITE_TITLE } from '../consts';
+---
+
+<!doctype html>
+<html lang="zh-CN">
+	<head>
+		<BaseHead title={`About - ${SITE_TITLE}`} description="About Hayley Feng" />
+	</head>
+	<body>
+		<Header />
+		<main class="max-w-3xl mx-auto px-6 py-16">
+			<div class="text-xs text-neutral-600 light:text-neutral-400 mb-6">
+				<span class="text-green-400 light:text-green-600">hayley@dev</span>:<span class="text-cyan-400 light:text-cyan-600">~</span>$ cat about.md
+			</div>
+
+			<div class="prose">
+				<h1 class="!text-xl !mb-6">About</h1>
+
+				<p>
+					Hi. I'm <strong>Hayley Feng</strong>, a full-stack developer who enjoys building products that work well and code that reads well.
+				</p>
+
+				<h2>Stack</h2>
+
+				<ul>
+					<li><strong>Backend</strong> &mdash; Python, FastAPI, PostgreSQL</li>
+					<li><strong>Frontend</strong> &mdash; React, TypeScript, Tailwind CSS</li>
+					<li><strong>Exploring</strong> &mdash; LLMs, AI Agents, Rust</li>
+					<li><strong>Infra</strong> &mdash; Docker, GitHub Actions, Vercel</li>
+				</ul>
+
+				<h2>Why This Blog</h2>
+
+				<p>
+					Writing is thinking. I use this space to document what I learn, break down problems I've solved, and occasionally rant about developer tooling. If something here saves you 30 minutes of debugging, it was worth writing.
+				</p>
+
+				<h2>Contact</h2>
+
+				<p>
+					Find me on <a href="https://github.com" target="_blank">GitHub</a>. Open to conversations about tech, open source, and collaboration.
+				</p>
+			</div>
+		</main>
+		<Footer />
+	</body>
+</html>

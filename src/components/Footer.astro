@@ -1,0 +1,23 @@
+---
+const today = new Date();
+---
+
+<footer class="border-t border-neutral-800 light:border-neutral-200 mt-20">
+	<div class="max-w-3xl mx-auto px-6 py-8">
+		<div class="flex flex-col sm:flex-row justify-between items-center gap-3 text-xs text-neutral-500">
+			<p>
+				<span class="text-neutral-600 light:text-neutral-400">&copy; {today.getFullYear()}</span> Hayley Feng
+				<span class="text-neutral-700 light:text-neutral-300 mx-1">|</span>
+				Built with <a href="https://astro.build" target="_blank" class="hover:text-green-400 light:hover:text-green-600">Astro</a>
+			</p>
+			<div class="flex items-center gap-4">
+				<a href="/rss.xml" class="hover:text-green-400 light:hover:text-green-600 transition-colors" aria-label="RSS">
+					[rss]
+				</a>
+				<a href="https://github.com" target="_blank" class="hover:text-green-400 light:hover:text-green-600 transition-colors" aria-label="GitHub">
+					[github]
+				</a>
+			</div>
+		</div>
+	</div>
+</footer>

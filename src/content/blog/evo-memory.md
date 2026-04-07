@@ -1,7 +1,7 @@
 ---
 title: 'Evo-Memory：评估具有自我进化记忆能力的大模型智能体在测试阶段的学习表现'
 description: '论文精读：Google DeepMind & UIUC 提出的 ReMem 框架，让冻结的 LLM 通过记忆进化实现测试时持续学习，以及在 Dify 中的工程落地思考。'
-pubDate: 2026-04-07
+pubDate: 2025-12-14
 tags: ['AI', 'Paper Reading', 'LLM Agent', 'Memory']
 ---
 

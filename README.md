@@ -1,62 +1,41 @@
-# Astro Starter Kit: Blog
+# Hayley Feng's Personal Website
 
-```sh
-pnpm create astro@latest -- --template blog
+A personal tech blog with a geek/terminal-inspired aesthetic and dark-first design.
+
+- **Live**: https://kaitlynfeng.github.io/personal_web/
+- **Repo**: https://github.com/KaitlynFeng/personal_web
+
+## About
+
+This site is where I write about technology, paper readings, and things I find interesting. Built to look and feel like a terminal — monospace font, dashed borders, terminal green accent color.
+
+## Tech Stack
+
+- **Framework**: Astro 6 (static site generator)
+- **UI**: React 19 (interactive components only)
+- **Styling**: Tailwind CSS 4
+- **Content**: Markdown / MDX via Astro Content Collections
+- **Font**: JetBrains Mono
+- **Package Manager**: pnpm
+- **Deployment**: GitHub Pages via GitHub Actions
+
+## Project Structure
+
+```
+src/
+├── components/        # Astro + React components
+├── content/blog/      # Blog posts (Markdown files)
+├── layouts/           # Page layouts
+├── pages/             # Routes: /, /blog, /projects, /about
+├── styles/global.css  # Global styles + Tailwind + theme tokens
+└── consts.ts          # Site title & description
 ```
 
-> 🧑‍🚀 **Seasoned astronaut?** Delete this file. Have fun!
+## Commands
 
-Features:
-
-- ✅ Minimal styling (make it your own!)
-- ✅ 100/100 Lighthouse performance
-- ✅ SEO-friendly with canonical URLs and Open Graph data
-- ✅ Sitemap support
-- ✅ RSS Feed support
-- ✅ Markdown & MDX support
-
-## 🚀 Project Structure
-
-Inside of your Astro project, you'll see the following folders and files:
-
-```text
-├── public/
-├── src/
-│   ├── components/
-│   ├── content/
-│   ├── layouts/
-│   └── pages/
-├── astro.config.mjs
-├── README.md
-├── package.json
-└── tsconfig.json
+```bash
+pnpm install   # Install dependencies
+pnpm dev       # Start dev server at http://localhost:4321
+pnpm build     # Build static site to ./dist
+pnpm preview   # Preview build locally
 ```
-
-Astro looks for `.astro` or `.md` files in the `src/pages/` directory. Each page is exposed as a route based on its file name.
-
-There's nothing special about `src/components/`, but that's where we like to put any Astro/React/Vue/Svelte/Preact components.
-
-The `src/content/` directory contains "collections" of related Markdown and MDX documents. Use `getCollection()` to retrieve posts from `src/content/blog/`, and type-check your frontmatter using an optional schema. See [Astro's Content Collections docs](https://docs.astro.build/en/guides/content-collections/) to learn more.
-
-Any static assets, like images, can be placed in the `public/` directory.
-
-## 🧞 Commands
-
-All commands are run from the root of the project, from a terminal:
-
-| Command                   | Action                                           |
-| :------------------------ | :----------------------------------------------- |
-| `pnpm install`             | Installs dependencies                            |
-| `pnpm dev`             | Starts local dev server at `localhost:4321`      |
-| `pnpm build`           | Build your production site to `./dist/`          |
-| `pnpm preview`         | Preview your build locally, before deploying     |
-| `pnpm astro ...`       | Run CLI commands like `astro add`, `astro check` |
-| `pnpm astro -- --help` | Get help using the Astro CLI                     |
-
-## 👀 Want to learn more?
-
-Check out [our documentation](https://docs.astro.build) or jump into our [Discord server](https://astro.build/chat).
-
-## Credit
-
-This theme is based off of the lovely [Bear Blog](https://github.com/HermanMartinus/bearblog/).

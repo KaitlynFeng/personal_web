@@ -20,7 +20,7 @@ const { title, description, pubDate, updatedDate, heroImage, tags } = Astro.prop
 		<main class="max-w-3xl mx-auto px-6 py-12">
 			<article>
 				<!-- Back link -->
-				<a href="/blog" class="inline-flex items-center gap-1 text-xs text-neutral-500 hover:text-green-400 light:hover:text-green-600 mb-8 transition-colors no-underline hover:no-underline">
+				<a href={`${import.meta.env.BASE_URL}blog`} class="inline-flex items-center gap-1 text-xs text-neutral-500 hover:text-green-400 light:hover:text-green-600 mb-8 transition-colors no-underline hover:no-underline">
 					&larr; cd ../blog
 				</a>
 
@@ -56,7 +56,7 @@ const { title, description, pubDate, updatedDate, heroImage, tags } = Astro.prop
 
 			<!-- Footer nav -->
 			<div class="mt-12 pt-6 border-t border-dashed border-neutral-800 light:border-neutral-200">
-				<a href="/blog" class="text-xs text-neutral-500 hover:text-green-400 light:hover:text-green-600 transition-colors no-underline hover:no-underline">
+				<a href={`${import.meta.env.BASE_URL}blog`} class="text-xs text-neutral-500 hover:text-green-400 light:hover:text-green-600 transition-colors no-underline hover:no-underline">
 					&larr; cd ../blog
 				</a>
 			</div>

@@ -11,7 +11,7 @@ const today = new Date();
 				Built with <a href="https://astro.build" target="_blank" class="hover:text-green-400 light:hover:text-green-600">Astro</a>
 			</p>
 			<div class="flex items-center gap-4">
-				<a href="/rss.xml" class="hover:text-green-400 light:hover:text-green-600 transition-colors" aria-label="RSS">
+				<a href={`${import.meta.env.BASE_URL}rss.xml`} class="hover:text-green-400 light:hover:text-green-600 transition-colors" aria-label="RSS">
 					[rss]
 				</a>
 				<a href="https://github.com" target="_blank" class="hover:text-green-400 light:hover:text-green-600 transition-colors" aria-label="GitHub">

@@ -13,8 +13,28 @@ type Props = CollectionEntry<'blog'>;
 
 const post = Astro.props;
 const { Content } = await render(post);
+
+// Check if an original (unsanitized) version exists for this post
+let OriginalContent: any = null;
+try {
+	const originals = await getCollection('originals');
+	const original = originals.find((o) => o.id === post.id);
+	if (original) {
+		const rendered = await render(original);
+		OriginalContent = rendered.Content;
+	}
+} catch {
+	// No original version exists, that's fine
+}
 ---
 
-<BlogPost {...post.data}>
-	<Content />
+<BlogPost {...post.data} hasOriginal={!!OriginalContent}>
+	<div id="sanitized-content">
+		<Content />
+	</div>
+	{OriginalContent && (
+		<div id="original-content" style="display:none;">
+			<OriginalContent />
+		</div>
+	)}
 </BlogPost>

@@ -1,0 +1,722 @@
+---
+title: 'Docker 与服务器运维基础（原始版）'
+description: '含真实环境信息的原始版本'
+pubDate: 2026-04-12
+---
+
+# Docker 与服务器运维基础（原始版 - 含真实环境信息）
+
+> 整理日期：2026-04-12
+> 背景：从跳板机登录腾讯云服务器，进入 Docker 容器操作 PostgreSQL 数据库导出 LobeChat 聊天记录
+
+---
+
+## 目录
+
+1. [核心概念：机器、宿主机、容器](#1-核心概念机器宿主机容器)
+2. [Docker 是什么](#2-docker-是什么)
+3. [Docker 核心组件](#3-docker-核心组件)
+4. [容器隔离与安全（沙箱）](#4-容器隔离与安全沙箱)
+5. [网络基础](#5-网络基础)
+6. [实战案例：完整操作回顾](#6-实战案例完整操作回顾)
+7. [常用命令速查表](#7-常用命令速查表)
+8. [常见问题与踩坑记录](#8-常见问题与踩坑记录)
+
+---
+
+## 1. 核心概念：机器、宿主机、容器
+
+### 1.1 三者的关系
+
+```
+┌─────────────────────────────────────────────────────────┐
+│                 宿主机 / 机器 (Host)                      │
+│          （一台物理服务器 或 云服务器）                      │
+│           系统：CentOS / Ubuntu 等                        │
+│           IP：172.17.96.90                               │
+│                                                          │
+│    ┌────────────┐  ┌────────────┐  ┌────────────┐       │
+│    │  容器 A    │  │  容器 B    │  │  容器 C    │       │
+│    │  PostgreSQL│  │  LobeChat  │  │  Nginx     │       │
+│    │  端口:5432 │  │  端口:3210 │  │  端口:80   │       │
+│    │            │  │            │  │            │       │
+│    │ 独立文件系统│  │ 独立文件系统│  │ 独立文件系统│       │
+│    │ 独立进程   │  │ 独立进程   │  │ 独立进程   │       │
+│    └────────────┘  └────────────┘  └────────────┘       │
+│            ↑              ↑              ↑               │
+│            └──────────────┴──────────────┘               │
+│                    Docker 引擎                            │
+└─────────────────────────────────────────────────────────┘
+```
+
+### 1.2 概念解释
+
+| 术语 | 解释 | 类比 |
+|------|------|------|
+| **机器 (Machine)** | 物理服务器或云服务器，真正的硬件资源 | 一栋大楼 |
+| **宿主机 (Host)** | 机器上安装的操作系统，运行 Docker 的那个系统 | 大楼的主体结构 |
+| **容器 (Container)** | 跑在宿主机上的隔离环境，每个容器装一个服务 | 大楼里的一个个独立房间 |
+| **Docker 引擎** | 管理所有容器的软件 | 大楼的物业管理系统 |
+
+> **简单记忆**：机器 = 宿主机（同一个东西的不同说法），容器是跑在宿主机上的"小隔间"
+
+### 1.3 为什么需要容器？
+
+**没有容器的时代**：所有服务都装在同一台机器上
+
+```
+问题：
+- MySQL 需要 Python 3.6，但 LobeChat 需要 Python 3.11 → 版本冲突
+- 一个服务崩溃可能影响其他服务
+- 换一台新机器要重新装所有环境
+```
+
+**有容器之后**：每个服务都在自己的容器里
+
+```
+好处：
+- 每个容器有自己的环境，互不干扰
+- 一个容器崩了，其他容器照常运行
+- 迁移时把容器"打包"带走就行
+```
+
+---
+
+## 2. Docker 是什么
+
+Docker 是一个**容器化平台**，让你可以把应用和它依赖的所有环境打包在一起，在任何地方运行。
+
+### 2.1 Docker vs 虚拟机
+
+```
+┌── 虚拟机方案 ──────────────┐    ┌── Docker 方案 ─────────────┐
+│                             │    │                             │
+│  ┌─────┐ ┌─────┐ ┌─────┐  │    │  ┌─────┐ ┌─────┐ ┌─────┐  │
+│  │App A│ │App B│ │App C│  │    │  │App A│ │App B│ │App C│  │
+│  ├─────┤ ├─────┤ ├─────┤  │    │  └──┬──┘ └──┬──┘ └──┬──┘  │
+│  │GuestOS│GuestOS│GuestOS│ │    │     └───────┼───────┘     │
+│  │(完整) │(完整) │(完整) │  │    │        Docker 引擎        │
+│  └──┬──┘ └──┬──┘ └──┬──┘  │    │                             │
+│     └───────┼───────┘     │    ├─────────────────────────────┤
+│       Hypervisor           │    │         宿主机 OS            │
+│         虚拟化层            │    │       (共享内核)             │
+├─────────────────────────────┤    ├─────────────────────────────┤
+│         宿主机 OS           │    │          硬件               │
+├─────────────────────────────┤    └─────────────────────────────┘
+│          硬件               │
+└─────────────────────────────┘
+
+虚拟机：每个应用带一个完整操作系统      Docker：共享宿主机内核，轻量级
+启动：分钟级                           启动：秒级
+占用：GB 级内存                        占用：MB 级内存
+```
+
+---
+
+## 3. Docker 核心组件
+
+### 3.1 镜像 (Image)
+
+**镜像是模板**，容器是从镜像创建出来的实例。
+
+```
+类比：
+  镜像 = 安装光盘 / ISO 文件
+  容器 = 用光盘装好的一台电脑
+
+一个镜像可以创建多个容器，就像一张光盘可以装多台电脑
+```
+
+```bash
+# 查看本地所有镜像
+docker images
+
+# 从仓库拉取镜像
+docker pull postgres:17
+
+# 输出示例：
+# REPOSITORY   TAG    IMAGE ID       SIZE
+# postgres     17     abc123def456   420MB
+# nginx        latest 789ghi012jkl   190MB
+```
+
+### 3.2 容器 (Container)
+
+**容器是镜像的运行实例**，可以启动、停止、删除。
+
+```bash
+# 查看正在运行的容器
+docker ps
+
+# 查看所有容器（包括已停止的）
+docker ps -a
+
+# 从镜像创建并启动一个容器
+docker run -d --name my-postgres -p 5432:5432 postgres:17
+
+# 停止容器
+docker stop my-postgres
+
+# 启动已停止的容器
+docker start my-postgres
+
+# 删除容器
+docker rm my-postgres
+```
+
+### 3.3 数据卷 (Volume)
+
+容器被删除后，**里面的数据也会消失**。数据卷解决这个问题——把数据存在宿主机上。
+
+```
+┌───────────────────────────┐
+│        宿主机              │
+│                            │
+│  /data/postgres/ ←─── 数据卷（持久化存储）
+│        ↑                   │
+│        │ 挂载              │
+│  ┌─────┴─────┐             │
+│  │  容器      │             │
+│  │ /var/lib/  │             │
+│  │ postgresql │             │
+│  └───────────┘             │
+└───────────────────────────┘
+
+容器删了重建，数据还在宿主机上，不会丢
+```
+
+```bash
+# 创建容器时挂载数据卷
+docker run -d \
+  --name my-postgres \
+  -v /data/postgres:/var/lib/postgresql/data \
+  postgres:17
+
+# 查看数据卷
+docker volume ls
+```
+
+### 3.4 Docker Compose
+
+当你需要**同时运行多个容器**时（比如 LobeChat 需要 Postgres + Nginx + MinIO + Casdoor），用 Docker Compose 一键管理。
+
+```yaml
+# docker-compose.yml 示例（LobeChat 的部署）
+version: '3'
+services:
+  postgres:
+    image: pgvector/pgvector:pg17
+    ports:
+      - "5432:5432"
+    volumes:
+      - ./data/postgres:/var/lib/postgresql/data
+
+  lobe-chat:
+    image: mylobe:v12-ceo
+    depends_on:
+      - postgres
+
+  nginx:
+    image: nginx
+    ports:
+      - "80:80"
+      - "443:443"
+```
+
+```bash
+# 一键启动所有服务
+docker-compose up -d
+
+# 一键停止所有服务
+docker-compose down
+
+# 查看所有服务状态
+docker-compose ps
+```
+
+---
+
+## 4. 容器隔离与安全（沙箱）
+
+### 4.1 什么是沙箱 (Sandbox)
+
+沙箱是一个**受限的执行环境**，在里面执行的操作不会影响外部系统。
+
+```
+现实类比：
+
+  沙箱 = 实验室的生物安全柜
+  
+  科学家在安全柜里做危险实验
+  → 即使培养皿打翻了
+  → 危险物质被限制在安全柜内
+  → 不会污染整个实验室
+  
+  Docker 容器 = 软件世界的安全柜
+  
+  在容器里跑不信任的代码
+  → 即使代码有恶意行为
+  → 影响被限制在容器内
+  → 不会破坏宿主机
+```
+
+### 4.2 Docker 如何实现隔离
+
+Docker 用 Linux 内核的两个核心技术实现隔离：
+
+#### Namespace（命名空间）—— "看不到"
+
+让每个容器有自己独立的视图：
+
+| Namespace | 隔离内容 | 效果 |
+|-----------|---------|------|
+| PID | 进程 | 容器只能看到自己的进程，看不到宿主机和其他容器的 |
+| NET | 网络 | 每个容器有自己的 IP、端口、网卡 |
+| MNT | 文件系统 | 容器有自己的 `/`、`/tmp`、`/etc`，和宿主机不同 |
+| UTS | 主机名 | 每个容器可以有自己的 hostname |
+| IPC | 进程间通信 | 容器间的进程不能直接通信 |
+| USER | 用户 | 容器里的 root ≠ 宿主机的 root |
+
+```
+举例：
+
+宿主机上运行着 200 个进程
+容器 A 里运行着 5 个进程
+
+在容器 A 里执行 ps aux：
+  → 只能看到自己的 5 个进程
+  → 看不到宿主机的 200 个进程
+  → 也看不到容器 B 的进程
+```
+
+#### Cgroup（控制组）—— "用不多"
+
+限制每个容器能使用的资源：
+
+```bash
+# 限制容器最多用 512MB 内存和 1 个 CPU
+docker run -d \
+  --memory=512m \
+  --cpus=1 \
+  --name my-app \
+  my-image
+
+# 即使容器里的程序有内存泄漏
+# 也只会撑爆这个容器（被 OOM Kill）
+# 不会把宿主机的内存吃光
+```
+
+### 4.3 隔离的边界（注意事项）
+
+容器隔离**不是绝对安全**的：
+
+```
+⚠️ 以下情况隔离会被打破：
+
+1. --privileged 特权模式
+   docker run --privileged ...
+   → 容器获得几乎等同宿主机的权限，非常危险
+
+2. 挂载宿主机敏感目录
+   docker run -v /:/host ...
+   → 容器可以读写宿主机的整个文件系统
+
+3. 共享网络
+   docker run --network=host ...
+   → 容器直接使用宿主机网络，没有网络隔离
+
+4. 内核漏洞
+   → 容器和宿主机共享内核
+   → 如果内核有漏洞，容器可能"逃逸"到宿主机
+```
+
+### 4.4 安全等级对比
+
+```
+安全性从低到高：
+
+  直接在宿主机跑  <  Docker 容器  <  虚拟机  <  物理隔离
+  
+  没有隔离           进程级隔离      硬件级隔离    完全隔离
+  共享一切           共享内核        独立内核      独立硬件
+```
+
+---
+
+## 5. 网络基础
+
+### 5.1 跳板机 / 堡垒机
+
+```
+┌──────────┐     ┌──────────────┐     ┌──────────────────┐
+│  你的电脑  │────→│  跳板机/堡垒机 │────→│  目标服务器       │
+│  (本地)   │ SSH │  (中间人)     │ SSH │  (生产环境)       │
+└──────────┘     └──────────────┘     └──────────────────┘
+                   10.146.16.2          172.17.96.90
+
+堡垒机网页地址：juno.ximaoa.com
+
+作用：
+- 所有人必须先登录跳板机，再从跳板机访问内部服务器
+- 统一审计：谁在什么时候登录了哪台机器，做了什么操作
+- 安全管控：可以限制权限、录屏回放
+```
+
+### 5.2 内网 IP 段
+
+```
+常见的内网（私有）IP 段：
+
+  10.0.0.0    ~ 10.255.255.255    （10.x.x.x）
+  172.16.0.0  ~ 172.31.255.255    （172.16~31.x.x）
+  192.168.0.0 ~ 192.168.255.255   （192.168.x.x）
+
+这些 IP 只能在内网访问，外网无法直接连接
+```
+
+### 5.3 Docker 网络
+
+```
+宿主机 IP：172.17.96.90
+
+Docker 默认创建的网桥：172.17.0.1/16
+  → 容器默认分配 172.17.0.x 的 IP
+  → 这个网段是 Docker 内部用的，和外部网络无关
+
+┌─────────────────────────────────────┐
+│  宿主机                              │
+│  eth0: 172.17.96.90（真实IP）        │
+│                                      │
+│  docker0: 172.17.0.1（Docker网桥）   │
+│      │                               │
+│      ├── 容器A: 172.17.0.2          │
+│      ├── 容器B: 172.17.0.3          │
+│      └── 容器C: 172.17.0.4          │
+└─────────────────────────────────────┘
+```
+
+### 5.4 端口映射
+
+容器的端口默认外部无法访问，需要**映射**到宿主机：
+
+```bash
+# -p 宿主机端口:容器端口
+docker run -d -p 5432:5432 postgres:17
+
+# 访问 宿主机IP:5432 → 实际连到容器的 5432
+```
+
+```
+外部请求 → 172.17.96.90:5432 → Docker 转发 → 容器:5432 (PostgreSQL)
+外部请求 → 172.17.96.90:80   → Docker 转发 → 容器:80   (Nginx)
+```
+
+---
+
+## 6. 实战案例：完整操作回顾
+
+### 6.1 今天的操作路径
+
+```
+你的 Mac
+  │
+  │  SSH（终端 或 网页堡垒机 Juno）
+  ↓
+跳板机 10.146.16.2（sh1-1-test-own-app-10-146-16-2）
+  │
+  │  网页堡垒机 Juno 连接（SSH直连不通，网段不同）
+  ↓
+腾讯云服务器 172.17.96.90（宿主机，lobeceo）
+  │
+  │  docker exec（进入容器）
+  ↓
+lobe-postgres 容器（PostgreSQL 数据库）
+  │
+  │  psql 命令行
+  ↓
+lobechat 数据库 → 导出 CSV
+```
+
+### 6.2 两台目标机器
+
+| 机器 | 主机名 | IP | 用途 |
+|------|--------|-----|------|
+| lobeceo | qcloud-ap-shanghai-5-lobeceo-172-17-96-90 | 172.17.96.90 | LobeChat CEO 版 |
+| lobehr | qcloud-ap-shanghai-5-lobehr-172-17-96-172 | 172.17.96.172 | LobeChat HR 版 |
+
+### 6.3 lobeceo 机器上的容器列表
+
+| 容器名 | 镜像 | 作用 |
+|--------|------|------|
+| lobe-chat | mylobe:v12-ceo | LobeChat 应用主体 |
+| lobehub-nginx | nginx | 反向代理（80/443） |
+| lobe-casdoor | casbin/casdoor:v1.843.0 | 用户认证（SSO） |
+| lobe-minio | minio/minio | 对象存储（文件/图片） |
+| lobe-searxng | searxng/searxng | 搜索引擎 |
+| lobe-network | alpine | 网络桥接容器 |
+| lobe-postgres | pgvector/pgvector:pg17 | PostgreSQL 数据库 |
+
+### 6.4 lobechat 数据库信息
+
+- 数据库列表：`lobechat`、`casdoor`、`postgres`
+- 用户总数：86 人
+- 消息总数：28602 条（lobeceo）/ 4381 条（lobehr）
+- 关键表：`users`、`messages`、`sessions`、`topics`、`agents`
+
+### 6.5 遇到的问题与解决
+
+#### 问题 1：从跳板机 SSH 连不上目标机器
+
+```bash
+[root@sh1-1-test-own-app-10-146-16-2 ~]# ssh root@172.17.96.90
+ssh: connect to host 172.17.96.90 port 22: No route to host
+```
+
+**原因**：跳板机（`10.146.x.x` 网段）和目标机器（`172.17.x.x` 网段）不在同一个网络，而且跳板机自己的 Docker 网桥 `172.17.0.0/16` 抢了路由——流量被发送到了本地 Docker 网络而不是远程服务器。
+
+**解决**：通过网页堡垒机（Juno: juno.ximaoa.com）连接，Juno 后端和腾讯云网络是通的。
+
+#### 问题 2：Docker 权限不足
+
+```bash
+[super@VM-96-90-centos ~]$ docker ps
+permission denied while trying to connect to the Docker daemon socket
+```
+
+**原因**：登录用户是 `super`，不在 docker 用户组中。
+
+**解决**：加 `sudo`
+
+```bash
+[super@VM-96-90-centos ~]$ sudo docker ps
+```
+
+#### 问题 3：导出的文件在容器里找不到
+
+```bash
+[super@VM-96-90-centos ~]$ ls /tmp/lobeceo_chat_records.csv
+ls: cannot access /tmp/lobeceo_chat_records.csv: No such file or directory
+```
+
+**原因**：`\copy ... TO '/tmp/xxx.csv'` 是在 **容器的文件系统** 里写文件，不是宿主机。
+
+**解决**：用 `docker cp` 把文件从容器拷到宿主机
+
+```bash
+$ sudo docker cp lobe-postgres:/tmp/lobeceo_chat_records.csv /tmp/
+```
+
+### 6.6 关键操作命令
+
+```bash
+# 1. 查看容器里跑了什么
+sudo docker ps
+
+# 2. 进入容器的数据库
+sudo docker exec -it lobe-postgres psql -U postgres
+
+# 3. 在 psql 中操作
+\l                  -- 列出所有数据库
+\c lobechat         -- 切换到 lobechat 数据库
+\dt                 -- 列出所有表
+\d users            -- 查看表结构
+SELECT COUNT(*) FROM messages;  -- 查询数据
+
+# 4. 导出数据到 CSV
+\copy (SELECT ... FROM ...) TO '/tmp/lobeceo_chat_records.csv' WITH CSV HEADER ENCODING 'UTF8';
+
+# 5. 退出 psql
+\q
+
+# 6. 从容器拷贝文件到宿主机
+sudo docker cp lobe-postgres:/tmp/lobeceo_chat_records.csv /tmp/lobeceo_chat_records.csv
+
+# 7. 从服务器下载到本地
+sz /tmp/lobeceo_chat_records.csv
+```
+
+### 6.7 导出用的 SQL
+
+```sql
+\copy (
+  SELECT 
+    u.full_name AS 用户姓名,
+    u.email AS 邮箱,
+    s.title AS 会话标题,
+    m.role AS 角色,
+    m.content AS 消息内容,
+    m.model AS 模型,
+    m.provider AS 供应商,
+    m.created_at AS 发送时间
+  FROM messages m
+  JOIN users u ON m.user_id = u.id
+  LEFT JOIN sessions s ON m.session_id = s.id
+  WHERE m.content IS NOT NULL AND m.content != ''
+  ORDER BY u.full_name, m.session_id, m.created_at
+) TO '/tmp/lobeceo_chat_records.csv' WITH CSV HEADER ENCODING 'UTF8';
+```
+
+---
+
+## 7. 常用命令速查表
+
+### 7.1 Docker 容器管理
+
+| 命令 | 说明 |
+|------|------|
+| `docker ps` | 查看运行中的容器 |
+| `docker ps -a` | 查看所有容器（含已停止） |
+| `docker start 容器名` | 启动容器 |
+| `docker stop 容器名` | 停止容器 |
+| `docker restart 容器名` | 重启容器 |
+| `docker rm 容器名` | 删除容器 |
+| `docker logs 容器名` | 查看容器日志 |
+| `docker logs -f 容器名` | 实时查看日志（类似 tail -f） |
+
+### 7.2 进入容器
+
+| 命令 | 说明 |
+|------|------|
+| `docker exec -it 容器名 bash` | 进入容器（bash shell） |
+| `docker exec -it 容器名 sh` | 进入容器（sh shell，有些容器没有 bash） |
+| `docker exec -it 容器名 psql -U postgres` | 直接进入 PostgreSQL |
+| `docker exec -it 容器名 mysql -u root -p` | 直接进入 MySQL |
+
+### 7.3 文件操作
+
+| 命令 | 说明 |
+|------|------|
+| `docker cp 容器名:/path/file /本地/path/` | 从容器拷文件到宿主机 |
+| `docker cp /本地/path/file 容器名:/path/` | 从宿主机拷文件到容器 |
+
+### 7.4 镜像管理
+
+| 命令 | 说明 |
+|------|------|
+| `docker images` | 查看本地镜像 |
+| `docker pull 镜像名:标签` | 拉取镜像 |
+| `docker rmi 镜像名` | 删除镜像 |
+
+### 7.5 Docker Compose
+
+| 命令 | 说明 |
+|------|------|
+| `docker-compose up -d` | 启动所有服务（后台运行） |
+| `docker-compose down` | 停止并删除所有服务 |
+| `docker-compose ps` | 查看服务状态 |
+| `docker-compose logs -f` | 查看所有服务日志 |
+| `docker-compose restart 服务名` | 重启单个服务 |
+
+### 7.6 PostgreSQL (psql)
+
+| 命令 | 说明 |
+|------|------|
+| `\l` | 列出所有数据库 |
+| `\c 数据库名` | 切换数据库 |
+| `\dt` | 列出当前数据库所有表 |
+| `\d 表名` | 查看表结构 |
+| `\q` | 退出 psql |
+| `\copy (...) TO 'file' WITH CSV HEADER` | 导出查询结果到 CSV |
+
+### 7.7 SSH 与文件传输
+
+| 命令 | 说明 |
+|------|------|
+| `ssh user@ip` | SSH 登录远程服务器 |
+| `scp 本地文件 user@ip:/远程路径/` | 上传文件到远程 |
+| `scp user@ip:/远程文件 /本地路径/` | 从远程下载文件 |
+| `sz 文件名` | Zmodem 下载（网页终端用） |
+| `rz` | Zmodem 上传（网页终端用） |
+
+---
+
+## 8. 常见问题与踩坑记录
+
+### Q1: docker ps 提示 permission denied
+
+```
+原因：当前用户没有 Docker 权限
+解决：
+  方法1: sudo docker ps
+  方法2: 把用户加入 docker 组（需要管理员）
+         sudo usermod -aG docker $USER
+```
+
+### Q2: 容器里的文件在宿主机上找不到
+
+```
+原因：容器有独立的文件系统，/tmp 是容器的 /tmp，不是宿主机的
+解决：用 docker cp 拷出来
+  sudo docker cp 容器名:/tmp/file.csv /tmp/file.csv
+```
+
+### Q3: SSH 连接提示 No route to host
+
+```
+可能原因：
+  1. 目标机器关机或网络不通
+  2. 网段不同，没有路由
+  3. 本机 Docker 网络与目标 IP 冲突（今天遇到的）
+  
+排查：
+  ip addr    # 看本机网络配置
+  ping 目标IP # 测试连通性
+```
+
+### Q4: 容器突然停止了
+
+```bash
+# 查看容器状态和退出原因
+docker ps -a
+docker logs 容器名
+
+# 常见原因：
+# - OOM (内存不足被杀)
+# - 应用本身崩溃
+# - 宿主机重启
+```
+
+---
+
+## 附录：LobeChat 的 Docker 架构
+
+```
+┌─────────────────────────────────────────────────┐
+│              172.17.96.90 (lobeceo)              │
+│                                                  │
+│  ┌──────────┐    ┌──────────┐    ┌──────────┐   │
+│  │  Nginx   │───→│ LobeChat │───→│ PostgreSQL│   │
+│  │  :80/443 │    │  应用     │    │  :5432   │   │
+│  └──────────┘    └────┬─────┘    └──────────┘   │
+│                       │                          │
+│                  ┌────┴─────┐                    │
+│                  │  MinIO   │                    │
+│                  │ 文件存储  │                    │
+│                  └──────────┘                    │
+│                                                  │
+│  ┌──────────┐    ┌──────────┐                    │
+│  │ Casdoor  │    │ SearXNG  │                    │
+│  │ 用户认证  │    │ 搜索引擎  │                    │
+│  └──────────┘    └──────────┘                    │
+└─────────────────────────────────────────────────┘
+
+用户访问流程：
+  浏览器 → Nginx(反向代理) → LobeChat(应用) → PostgreSQL(存聊天记录)
+                                             → MinIO(存上传的文件)
+                                             → Casdoor(验证登录)
+```
+
+---
+
+## 附录：跳板机上的容器列表（10.146.16.2）
+
+跳板机本身也跑着一些 Docker 容器（运维管理工具）：
+
+| 容器名 | 用途 |
+|--------|------|
+| hiclaw-manager | Higress 网关管理 |
+| hiclaw-docker-proxy | Docker 代理 |
+| mysql-sre-mcp-new | MySQL SRE MCP 服务 |
+| mysql-sre-mcp-agent | MySQL SRE MCP Agent（含SSH） |
+| grafana-mcp-server | Grafana 监控 MCP |
+| prometheus-mcp-server | Prometheus 监控 MCP |

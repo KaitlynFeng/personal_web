@@ -8,6 +8,7 @@ import react from '@astrojs/react';
 
 import tailwindcss from '@tailwindcss/vite';
 import rehypeMermaid from 'rehype-mermaid';
+import rehypeShiki from '@shikijs/rehype';
 
 // https://astro.build/config
 export default defineConfig({
@@ -16,8 +17,10 @@ export default defineConfig({
   integrations: [mdx(), sitemap(), react()],
 
   markdown: {
+    syntaxHighlight: false,
     rehypePlugins: [
       [rehypeMermaid, { strategy: 'img-svg' }],
+      [rehypeShiki, { theme: 'github-dark' }],
     ],
   },
 

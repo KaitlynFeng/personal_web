@@ -20,7 +20,7 @@ export default defineConfig({
     syntaxHighlight: false,
     rehypePlugins: [
       [rehypeMermaid, { strategy: 'img-svg' }],
-      [rehypeShiki, { theme: 'github-dark' }],
+      [rehypeShiki, { themes: { light: 'github-light', dark: 'github-dark' }, defaultColor: 'dark' }],
     ],
   },
 

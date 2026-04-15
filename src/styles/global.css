@@ -223,7 +223,14 @@ html.light .prose code {
   border: 1px solid #1e1e1e;
 }
 
-html.light .prose pre { border-color: #e5e5e5; }
+html.light .prose pre {
+  border-color: #e5e5e5;
+  background-color: var(--shiki-light-bg, #fff) !important;
+}
+
+html.light .prose pre code span {
+  color: var(--shiki-light) !important;
+}
 
 .prose pre > code {
   all: unset;

@@ -1,13 +1,13 @@
 ---
 title: 'Docker 与服务器运维基础'
 description: '从跳板机登录云服务器，进入 Docker 容器操作 PostgreSQL 数据库导出数据的实战经历总结'
-pubDate: 2026-04-12
+pubDate: 2026-03-12
 tags: ['Docker', 'Linux', 'DevOps']
 ---
 
 # Docker 与服务器运维基础
 
-> 整理日期：2026-04-12
+> 整理日期：2026-03-12
 > 背景：从跳板机登录云服务器，进入 Docker 容器操作 PostgreSQL 数据库导出数据的实战经历
 
 ---

@@ -9,7 +9,7 @@ tags: ['AI', 'Claude Code', 'Engineering']
 
 > 从 ETH Zurich 论文到 Claude Code 创始团队工作流——如何写好 AI Agent 能读懂的项目文档
 >
-> 作者：xmly | 日期：2026-04-12
+> 作者：Hayley Feng | 日期：2026-04-12
 
 ---
 
